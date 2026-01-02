@@ -4,123 +4,129 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Windows 95/98 Notepad clone built with Electron. Uses the 98.css library for authentic retro styling.
+Windows 95/98 Notepad clone built with Tauri (Rust backend + WebView frontend). Uses the 98.css library for authentic retro styling.
+
+**Author:** Goshitsarch
+**Repository:** https://github.com/goshitsarch-eng/Gosh-Notepad-Clone
 
 ## Development Commands
 
 ```bash
-npm start          # Run the app in development mode
-npm run build      # Build for current platform
-npm run build:win  # Build for Windows (nsis + portable)
-npm run build:mac  # Build for macOS (dir output, unsigned)
-npm run build:linux # Build for Linux (AppImage + deb)
+npm run dev         # Run the app in development mode
+npm run build       # Build for current platform
+npm run build:win   # Build for Windows x64
+npm run build:mac   # Build for macOS (Apple Silicon)
+npm run build:linux # Build for Linux x64
 ```
+
+**Prerequisites:**
+- Rust toolchain (rustup)
+- Node.js 18+
+- Platform-specific: `libwebkit2gtk-4.1-dev` on Linux, Xcode on macOS, VS C++ Build Tools on Windows
 
 ## Architecture
 
-### Process Structure (Electron)
+### Tauri Structure
 
-- **Main Process** (`src/main/`): Node.js backend
-  - `main.js` - App lifecycle, window creation, IPC handlers for window management
-  - `fileOperations.js` - File I/O via Electron dialog APIs (open, save, save-as)
-  - `menu.js` - Native application menu template (currently unused - app uses in-window menu)
+- **Rust Backend** (`src-tauri/`):
+  - `main.rs` - App entry point
+  - `lib.rs` - Tauri commands (file operations, dialogs, window management)
+  - `tauri.conf.json` - App configuration (window size, permissions, bundling)
+  - `Cargo.toml` - Rust dependencies
 
-- **Preload** (`src/preload/preload.js`): Bridge between main and renderer using `contextBridge.exposeInMainWorld('electronAPI', ...)`. All IPC communication goes through this secure API.
-
-- **Renderer** (`src/renderer/`): Frontend
-  - `index.html` - Main UI with custom Windows 98-style menu bar and modal dialogs (Find, Replace, Go To, Font, About)
-  - `js/app.js` - All UI logic, state management, keyboard shortcuts, dialog handlers
+- **WebView Frontend** (`src/`):
+  - `index.html` - Main UI with custom Windows 98-style menu bar and modal dialogs
+  - `js/app.js` - All UI logic, state management, keyboard shortcuts
   - `styles/main.css` - Windows 98 styling (sunken borders, status bar, menu system)
+  - `styles/98.css` - 98.css library (copy from node_modules after npm install)
 
 ### Key Patterns
 
 - **State Management**: Single `state` object in `app.js` tracks current file path, content changes, search state, and font settings
-- **Menu System**: Custom in-app menu bar (not Electron's native menu) with dropdown behavior implemented in `setupMenuBar()`
+- **Menu System**: Custom in-app menu bar with dropdown behavior implemented in `setupMenuBar()`
 - **Dialogs**: Modal overlays with `.dialog-overlay.hidden` class toggling, all defined in `index.html`
-- **IPC Flow**: Renderer calls `window.electronAPI.*` methods → Preload forwards via `ipcRenderer` → Main handles with `ipcMain.handle/on`
+- **IPC Flow**: Frontend calls `invoke('command_name', {args})` → Tauri routes to Rust `#[tauri::command]` handlers
+
+### Tauri Commands
+
+| Command | Args | Returns | Purpose |
+|---------|------|---------|---------|
+| `new_file` | - | `FileResult` | Reset document |
+| `open_file` | - | `FileResult` | Show picker, read file |
+| `save_file` | `path`, `content` | `FileResult` | Write to path |
+| `save_file_as` | `content` | `FileResult` | Show save dialog, write |
+| `print_document` | - | `Result<()>` | Trigger print |
+| `set_window_title` | `title` | `Result<()>` | Update title bar |
+| `quit_app` | - | - | Exit application |
 
 ### Unsaved Changes Handling
 
-The app tracks modifications via `state.hasUnsavedChanges` (comparing `editor.value` to `state.originalContent`). Window close is intercepted in main process, which calls back to renderer's `window.checkUnsavedBeforeClose()` function.
+The app tracks modifications via `state.hasUnsavedChanges` (comparing `editor.value` to `state.originalContent`). A custom HTML dialog prompts for save/don't save/cancel. The `window.checkUnsavedBeforeClose()` function handles this flow.
 
-## macOS Build & Signing
+## Build & Distribution
 
-### Important Files
+### Build Output Locations
 
-- `entitlements.plist` - Required entitlements for Electron apps (JIT, unsigned memory, library validation)
-- `assets/icons/icon.icns` - macOS icon file
-- `assets/icons/icon.png` - Source icon for Windows/Linux
+- **macOS**: `src-tauri/target/release/bundle/dmg/`
+- **Windows**: `src-tauri/target/release/bundle/nsis/`
+- **Linux**: `src-tauri/target/release/bundle/appimage/` and `deb/`
 
-### Build Process
+### Icons
 
-1. `npm run build:mac` outputs unsigned app to `build/mac-arm64/Notepad.app`
-2. Sign all components individually with `--timestamp --options runtime --entitlements entitlements.plist`
-3. Notarize with `xcrun notarytool submit`
-4. Staple with `xcrun stapler staple`
-5. Create DMG with `hdiutil create`
+Icons are stored in `src-tauri/icons/`:
+- `icon.png` - Source icon
+- `icon.icns` - macOS
+- `icon.ico` - Windows (generate from PNG)
+- `32x32.png`, `128x128.png`, `128x128@2x.png` - Required sizes
 
-### Critical Signing Notes
+### macOS Signing
 
-**DO NOT use `codesign --deep`** - It fails to properly sign nested Electron binaries.
+Tauri apps don't require the complex signing process that Electron apps do. Use standard `codesign` and `notarytool` commands.
 
-Sign in this order (inside out):
-1. All `.dylib` files in Frameworks
-2. `chrome_crashpad_handler` binary
-3. `ShipIt` binary in Squirrel.framework
-4. Helper apps (Helper, Helper GPU, Helper Plugin, Helper Renderer)
-5. Frameworks (Electron Framework, Mantle, ReactiveObjC, Squirrel)
-6. Main app
+## File Structure
 
-### Required Entitlements
-
-Without these in `entitlements.plist`, app crashes with `pthread_jit_write_protect_np`:
-
-```xml
-<key>com.apple.security.cs.allow-jit</key>
-<true/>
-<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-<true/>
-<key>com.apple.security.cs.disable-library-validation</key>
-<true/>
+```
+Gosh-Notepad-Clone/
+├── src/                      # Frontend
+│   ├── index.html
+│   ├── js/app.js
+│   └── styles/
+│       ├── main.css
+│       └── 98.css           # Copy from node_modules/98.css/dist/
+├── src-tauri/               # Rust backend
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   ├── build.rs
+│   ├── icons/
+│   └── src/
+│       ├── main.rs
+│       └── lib.rs
+├── assets/icons/            # Source icons
+├── package.json
+└── README.md
 ```
 
-### Development Mode Customization
+## Common Tasks
 
-To show "Notepad" instead of "Electron" in macOS menu bar during development:
+### Adding a New Command
+
+1. Add `#[tauri::command]` function in `src-tauri/src/lib.rs`
+2. Register in `invoke_handler!` macro in `run()` function
+3. Call from JS via `invoke('command_name', {args})`
+
+### Updating Window Configuration
+
+Edit `src-tauri/tauri.conf.json` under `app.windows[]`
+
+### Adding Dependencies
+
+- **Rust**: Add to `src-tauri/Cargo.toml`
+- **JavaScript**: Add to `package.json`, ensure Tauri CSP allows it
+
+## Setup After Clone
 
 ```bash
-# Modify Electron.app's Info.plist
-PLIST="node_modules/electron/dist/Electron.app/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleName Notepad" "$PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Notepad" "$PLIST"
-
-# Replace icon
-cp assets/icons/icon.icns node_modules/electron/dist/Electron.app/Contents/Resources/electron.icns
+npm install
+cp node_modules/98.css/dist/98.css src/styles/
+npm run dev
 ```
-
-These changes reset on `npm install`.
-
-## Icon Generation
-
-Generate macOS .icns from 1024x1024 PNG:
-
-```bash
-mkdir -p assets/icons/icon.iconset
-sips -z 16 16 source.png --out assets/icons/icon.iconset/icon_16x16.png
-sips -z 32 32 source.png --out assets/icons/icon.iconset/icon_16x16@2x.png
-# ... (see README.md for full list)
-iconutil -c icns assets/icons/icon.iconset -o assets/icons/icon.icns
-rm -rf assets/icons/icon.iconset
-```
-
-For Windows, electron-builder auto-converts PNG to ICO.
-
-## Common Issues
-
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| App crashes with `pthread_jit_write_protect_np` | Missing JIT entitlements | Add entitlements.plist with allow-jit |
-| Notarization fails "no timestamp" | Signed without `--timestamp` | Re-sign with `--timestamp` flag |
-| Notarization fails "not signed" | Used `--deep` flag | Sign each component individually |
-| Menu bar shows "Electron" | Default Electron bundle name | Modify Info.plist (dev) or build config (prod) |
-| Icon not showing | Wrong path or format | Ensure .icns for macOS, .png for others |

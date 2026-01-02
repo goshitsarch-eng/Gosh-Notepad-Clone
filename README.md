@@ -1,6 +1,6 @@
 # Notepad
 
-A faithful Windows 95/98 Notepad clone built with Electron and [98.css](https://jdan.github.io/98.css/).
+A faithful Windows 95/98 Notepad clone built with Tauri and [98.css](https://jdan.github.io/98.css/).
 
 Experience the nostalgia of classic Windows on your modern machine.
 
@@ -13,7 +13,7 @@ Experience the nostalgia of classic Windows on your modern machine.
 - **Font customization** - Change font family, style, and size
 - **Word wrap toggle** - Enable/disable word wrapping
 - **Status bar** - Shows current line and column position
-- **Dark mode support** - Automatic theme switching based on system preferences
+- **Dark mode support** - Toggle dark theme from Format menu
 - **Native keyboard shortcuts** - Ctrl+O, Ctrl+S, Ctrl+F, Ctrl+H, Ctrl+G, and more
 - **Unsaved changes detection** - Prompts before closing with unsaved work
 
@@ -26,21 +26,33 @@ Download the latest release for your platform:
 | Platform | Download |
 |----------|----------|
 | macOS (Apple Silicon) | `Notepad.dmg` |
-| Windows | Coming soon |
-| Linux | Coming soon |
+| Windows | `Notepad_x64-setup.exe` |
+| Linux | `notepad_amd64.AppImage` |
 
 ### Building from Source
 
+#### Prerequisites
+
+- [Rust](https://rustup.rs/) (1.70 or later)
+- [Node.js](https://nodejs.org/) (18 or later)
+- Platform-specific dependencies:
+  - **Linux**: `sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`
+  - **macOS**: Xcode Command Line Tools
+  - **Windows**: Visual Studio C++ Build Tools
+
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/NotepadElectron.git
-cd NotepadElectron
+git clone https://github.com/goshitsarch-eng/Gosh-Notepad-Clone.git
+cd Gosh-Notepad-Clone
 
 # Install dependencies
 npm install
 
+# Copy 98.css to src/styles/ (required)
+cp node_modules/98.css/dist/98.css src/styles/
+
 # Run in development mode
-npm start
+npm run dev
 
 # Build for your platform
 npm run build
@@ -51,219 +63,92 @@ npm run build
 ### Commands
 
 ```bash
-npm start           # Run the app in development mode
+npm run dev         # Run the app in development mode
 npm run build       # Build for current platform
-npm run build:mac   # Build for macOS
-npm run build:win   # Build for Windows
-npm run build:linux # Build for Linux
+npm run build:mac   # Build for macOS (Apple Silicon)
+npm run build:win   # Build for Windows x64
+npm run build:linux # Build for Linux x64
 ```
 
 ### Project Structure
 
 ```
-NotepadElectron/
-├── src/
-│   ├── main/                 # Main process (Node.js)
-│   │   ├── main.js          # App lifecycle, window management
-│   │   ├── fileOperations.js # File I/O handlers
-│   │   └── menu.js          # Native menu template (unused)
-│   ├── preload/
-│   │   └── preload.js       # Secure IPC bridge
-│   └── renderer/            # Frontend (Chromium)
-│       ├── index.html       # UI with dialogs
-│       ├── js/app.js        # Application logic
-│       └── styles/main.css  # Windows 98 styling
+Gosh-Notepad-Clone/
+├── src/                      # Frontend (WebView)
+│   ├── index.html           # UI with dialogs
+│   ├── js/app.js            # Application logic
+│   └── styles/
+│       ├── main.css         # Windows 98 styling
+│       └── 98.css           # 98.css library (copied from node_modules)
+├── src-tauri/               # Rust backend
+│   ├── Cargo.toml           # Rust dependencies
+│   ├── tauri.conf.json      # Tauri configuration
+│   └── src/
+│       ├── main.rs          # App entry point
+│       └── lib.rs           # Command handlers
 ├── assets/
-│   └── icons/               # App icons for all platforms
-├── entitlements.plist       # macOS code signing entitlements
-└── package.json             # Dependencies and build config
+│   └── icons/               # Source icons
+└── package.json             # npm scripts and dependencies
 ```
 
 ### Architecture
 
-This is an Electron application with three main components:
+This is a Tauri application with two main components:
 
-1. **Main Process** (`src/main/`) - Node.js backend handling:
+1. **Rust Backend** (`src-tauri/`) - Native backend handling:
    - Window creation and lifecycle
-   - File system operations via Electron dialogs
-   - IPC message handling
+   - File system operations via native dialogs
+   - Platform-specific functionality
 
-2. **Preload Script** (`src/preload/preload.js`) - Secure bridge exposing:
-   - `window.electronAPI` for renderer-to-main communication
-   - File operations (open, save, save-as)
-   - Window management (title, close)
-
-3. **Renderer Process** (`src/renderer/`) - Frontend handling:
+2. **WebView Frontend** (`src/`) - UI handling:
    - Custom Windows 98-style menu bar
    - Modal dialogs (Find, Replace, Go To, Font, About)
    - State management and keyboard shortcuts
+   - Communication with backend via `invoke()`
 
-## Building for macOS
+### Tauri Commands
 
-### Requirements
+The Rust backend exposes these commands to the frontend:
 
-- macOS with Xcode Command Line Tools
-- Apple Developer account (for signing/notarization)
-- Developer ID Application certificate
+| Command | Description |
+|---------|-------------|
+| `new_file` | Reset to empty document |
+| `open_file` | Show file picker, read selected file |
+| `save_file` | Write content to specified path |
+| `save_file_as` | Show save dialog, write to new file |
+| `print_document` | Open system print dialog |
+| `set_window_title` | Update window title bar |
+| `quit_app` | Exit the application |
 
-### Build Steps
+## Building for Distribution
 
-1. **Build the unsigned app:**
-   ```bash
-   npm run build:mac
-   ```
-   This creates `build/mac-arm64/Notepad.app`
-
-2. **Sign all components with entitlements:**
-   ```bash
-   APP="build/mac-arm64/Notepad.app"
-   IDENTITY="Developer ID Application: Your Name (TEAMID)"
-   ENTITLEMENTS="entitlements.plist"
-
-   # Sign dylibs
-   find "$APP/Contents/Frameworks" -type f -name "*.dylib" \
-     -exec codesign --force --timestamp --options runtime \
-     --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" {} \;
-
-   # Sign helper binaries
-   codesign --force --timestamp --options runtime \
-     --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" \
-     "$APP/Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers/chrome_crashpad_handler"
-
-   codesign --force --timestamp --options runtime \
-     --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" \
-     "$APP/Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt"
-
-   # Sign helper apps
-   for helper in "Notepad Helper" "Notepad Helper (GPU)" "Notepad Helper (Plugin)" "Notepad Helper (Renderer)"; do
-     codesign --force --timestamp --options runtime \
-       --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" \
-       "$APP/Contents/Frameworks/$helper.app"
-   done
-
-   # Sign frameworks
-   for framework in "Electron Framework" "Mantle" "ReactiveObjC" "Squirrel"; do
-     codesign --force --timestamp --options runtime \
-       --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" \
-       "$APP/Contents/Frameworks/$framework.framework"
-   done
-
-   # Sign main app
-   codesign --force --timestamp --options runtime \
-     --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$APP"
-   ```
-
-3. **Notarize the app:**
-   ```bash
-   # Create zip for upload
-   ditto -c -k --keepParent build/mac-arm64/Notepad.app Notepad.zip
-
-   # Submit for notarization
-   xcrun notarytool submit Notepad.zip \
-     --apple-id "your@email.com" \
-     --team-id "TEAMID" \
-     --password "app-specific-password" \
-     --wait
-
-   # Staple the ticket
-   xcrun stapler staple build/mac-arm64/Notepad.app
-   ```
-
-4. **Create DMG:**
-   ```bash
-   hdiutil create -volname "Notepad" \
-     -srcfolder build/mac-arm64/Notepad.app \
-     -ov -format UDZO build/Notepad.dmg
-
-   # Sign and notarize DMG
-   codesign --force --timestamp \
-     --sign "Developer ID Application: Your Name (TEAMID)" \
-     build/Notepad.dmg
-
-   xcrun notarytool submit build/Notepad.dmg \
-     --apple-id "your@email.com" \
-     --team-id "TEAMID" \
-     --password "app-specific-password" \
-     --wait
-
-   xcrun stapler staple build/Notepad.dmg
-   ```
-
-### Required Entitlements
-
-The `entitlements.plist` file is **critical** for Electron apps:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>com.apple.security.cs.allow-jit</key>
-    <true/>
-    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-    <true/>
-    <key>com.apple.security.cs.disable-library-validation</key>
-    <true/>
-</dict>
-</plist>
-```
-
-Without these entitlements, the app will crash on launch with a `pthread_jit_write_protect_np` error.
-
-## Lessons Learned
-
-### macOS Code Signing
-
-1. **`--deep` is insufficient** - The `codesign --deep` flag does NOT properly sign all nested Electron binaries. You must sign each component individually, from the inside out.
-
-2. **Timestamps are required** - Always use `--timestamp` flag. Without it, notarization will fail with "signature does not include a secure timestamp".
-
-3. **Hardened runtime needs entitlements** - The `--options runtime` flag enables hardened runtime (required for notarization), but Electron apps need JIT entitlements to function.
-
-4. **Sign order matters** - Sign in this order:
-   - dylibs first
-   - Helper binaries (chrome_crashpad_handler, ShipIt)
-   - Helper apps
-   - Frameworks
-   - Main app last
-
-5. **Don't forget chrome_crashpad_handler** - This binary is easily missed and will cause notarization to fail.
-
-### Development Mode on macOS
-
-To show your app name (not "Electron") in the menu bar during development, you must modify the Electron.app bundle:
+### macOS
 
 ```bash
-# Update Info.plist
-PLIST="node_modules/electron/dist/Electron.app/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleName Notepad" "$PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Notepad" "$PLIST"
-
-# Replace icon
-cp assets/icons/icon.icns \
-  node_modules/electron/dist/Electron.app/Contents/Resources/electron.icns
+npm run build:mac
 ```
 
-Note: These changes are in `node_modules/` and will reset on `npm install`.
+Output: `src-tauri/target/release/bundle/dmg/Notepad_1.0.0_aarch64.dmg`
 
-### Icon Generation
+For signing and notarization, use Apple's standard `codesign` and `notarytool` commands.
 
-For macOS, create an iconset from a 1024x1024 PNG:
+### Windows
 
 ```bash
-mkdir -p icon.iconset
-sips -z 16 16 source.png --out icon.iconset/icon_16x16.png
-sips -z 32 32 source.png --out icon.iconset/icon_16x16@2x.png
-sips -z 32 32 source.png --out icon.iconset/icon_32x32.png
-sips -z 64 64 source.png --out icon.iconset/icon_32x32@2x.png
-sips -z 128 128 source.png --out icon.iconset/icon_128x128.png
-sips -z 256 256 source.png --out icon.iconset/icon_128x128@2x.png
-sips -z 256 256 source.png --out icon.iconset/icon_256x256.png
-sips -z 512 512 source.png --out icon.iconset/icon_256x256@2x.png
-sips -z 512 512 source.png --out icon.iconset/icon_512x512.png
-sips -z 1024 1024 source.png --out icon.iconset/icon_512x512@2x.png
-iconutil -c icns icon.iconset -o icon.icns
+npm run build:win
 ```
+
+Output: `src-tauri/target/release/bundle/nsis/Notepad_1.0.0_x64-setup.exe`
+
+### Linux
+
+```bash
+npm run build:linux
+```
+
+Output:
+- `src-tauri/target/release/bundle/appimage/notepad_1.0.0_amd64.AppImage`
+- `src-tauri/target/release/bundle/deb/notepad_1.0.0_amd64.deb`
 
 ## Keyboard Shortcuts
 
@@ -273,20 +158,23 @@ iconutil -c icns icon.iconset -o icon.icns
 | Ctrl+O | Open file |
 | Ctrl+S | Save file |
 | Ctrl+Shift+S | Save as |
+| Ctrl+P | Print |
 | Ctrl+F | Find |
 | Ctrl+H | Replace |
 | Ctrl+G | Go to line |
 | F3 | Find next |
-| Shift+F3 | Find previous |
+| F5 | Insert time/date |
 | Ctrl+A | Select all |
 | Ctrl+Z | Undo |
-| Ctrl+Y | Redo |
 
 ## Technologies
 
-- [Electron](https://www.electronjs.org/) - Cross-platform desktop framework
+- [Tauri](https://tauri.app/) - Rust-based desktop framework
 - [98.css](https://jdan.github.io/98.css/) - Windows 98 CSS library
-- [electron-builder](https://www.electron.build/) - Build and distribution
+
+## Author
+
+Goshitsarch
 
 ## License
 

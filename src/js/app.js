@@ -1,3 +1,28 @@
+// Tauri API compatibility layer
+const { invoke } = window.__TAURI__.core;
+
+const tauriAPI = {
+  newFile: () => invoke('new_file'),
+  openFile: () => invoke('open_file'),
+  saveFile: (data) => invoke('save_file', { path: data.path, content: data.content }),
+  saveFileAs: (data) => invoke('save_file_as', { content: data.content }),
+  print: () => invoke('print_document'),
+  setTitle: (title) => invoke('set_window_title', { title }),
+  quit: () => invoke('quit_app'),
+};
+
+// Custom unsaved changes dialog (returns Promise: 0=Save, 1=Don't Save, 2=Cancel)
+let unsavedDialogResolve = null;
+
+function showUnsavedChangesDialog(filename) {
+  return new Promise((resolve) => {
+    unsavedDialogResolve = resolve;
+    document.getElementById('unsaved-message').textContent =
+      `Do you want to save changes to ${filename}?`;
+    document.getElementById('unsaved-dialog').classList.remove('hidden');
+  });
+}
+
 // State management
 const state = {
   currentFilePath: null,
@@ -188,7 +213,7 @@ function handleMenuAction(action, element) {
 async function handleExit() {
   const canClose = await window.checkUnsavedBeforeClose();
   if (canClose) {
-    window.electronAPI.quit();
+    tauriAPI.quit();
   }
 }
 
@@ -285,6 +310,32 @@ function setupDialogListeners() {
       updateFontSample();
     });
   });
+
+  // Unsaved changes dialog buttons
+  document.getElementById('unsaved-save-btn').addEventListener('click', () => {
+    document.getElementById('unsaved-dialog').classList.add('hidden');
+    if (unsavedDialogResolve) {
+      unsavedDialogResolve(0); // Save
+      unsavedDialogResolve = null;
+    }
+  });
+
+  document.getElementById('unsaved-dontsave-btn').addEventListener('click', () => {
+    document.getElementById('unsaved-dialog').classList.add('hidden');
+    if (unsavedDialogResolve) {
+      unsavedDialogResolve(1); // Don't Save
+      unsavedDialogResolve = null;
+    }
+  });
+
+  document.getElementById('unsaved-cancel-btn').addEventListener('click', () => {
+    document.getElementById('unsaved-dialog').classList.add('hidden');
+    if (unsavedDialogResolve) {
+      unsavedDialogResolve(2); // Cancel
+      unsavedDialogResolve = null;
+    }
+    editor.focus();
+  });
 }
 
 // Update window title
@@ -295,7 +346,7 @@ function updateTitle() {
   const modified = state.hasUnsavedChanges ? '*' : '';
   const title = `${modified}${filename} - Notepad`;
   document.title = title;
-  window.electronAPI.setTitle(title);
+  tauriAPI.setTitle(title);
 }
 
 // Update status bar with line and column
@@ -341,7 +392,7 @@ async function handleOpen() {
     }
   }
 
-  const result = await window.electronAPI.openFile();
+  const result = await tauriAPI.openFile();
   if (result.success) {
     editor.value = result.content;
     state.currentFilePath = result.path;
@@ -358,7 +409,7 @@ async function handleSave() {
     return handleSaveAs();
   }
 
-  const result = await window.electronAPI.saveFile({
+  const result = await tauriAPI.saveFile({
     path: state.currentFilePath,
     content: editor.value
   });
@@ -373,7 +424,7 @@ async function handleSave() {
 }
 
 async function handleSaveAs() {
-  const result = await window.electronAPI.saveFileAs({
+  const result = await tauriAPI.saveFileAs({
     content: editor.value
   });
 
@@ -391,11 +442,11 @@ async function checkUnsavedChanges() {
   const filename = state.currentFilePath
     ? state.currentFilePath.split(/[\\/]/).pop()
     : 'Untitled';
-  return await window.electronAPI.showUnsavedChangesDialog(filename);
+  return await showUnsavedChangesDialog(filename);
 }
 
 function handlePrint() {
-  window.electronAPI.print();
+  tauriAPI.print();
 }
 
 // Edit operations

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
   <title>Untitled - Notepad</title>
-  <link rel="stylesheet" href="../../node_modules/98.css/dist/98.css">
+  <link rel="stylesheet" href="styles/98.css">
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
@@ -227,9 +227,6 @@
     <div class="window dialog-window">
       <div class="title-bar">
         <div class="title-bar-text">About Notepad</div>
-        <div class="title-bar-controls">
-          <button aria-label="Close" data-close="about-dialog">×</button>
-        </div>
       </div>
       <div class="window-body about-content">
         <div class="about-icon">
@@ -246,9 +243,33 @@
         <hr>
         <p class="about-description">
           A Windows 95/98 Notepad clone<br>
-          Built with Electron
+          Built with Tauri by Goshitsarch
         </p>
         <button data-close="about-dialog" style="margin-top: 12px;">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unsaved Changes Dialog -->
+  <div id="unsaved-dialog" class="dialog-overlay hidden">
+    <div class="window dialog-window">
+      <div class="title-bar">
+        <div class="title-bar-text">Notepad</div>
+      </div>
+      <div class="window-body">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="flex-shrink: 0;">
+            <circle cx="16" cy="16" r="14" fill="#ffff00" stroke="#000"/>
+            <rect x="14" y="8" width="4" height="12" fill="#000"/>
+            <rect x="14" y="22" width="4" height="4" fill="#000"/>
+          </svg>
+          <p id="unsaved-message" style="margin: 0;">Do you want to save changes to Untitled?</p>
+        </div>
+        <div class="button-row" style="margin-top: 16px; justify-content: flex-end;">
+          <button id="unsaved-save-btn">Save</button>
+          <button id="unsaved-dontsave-btn">Don't Save</button>
+          <button id="unsaved-cancel-btn">Cancel</button>
+        </div>
       </div>
     </div>
   </div>
