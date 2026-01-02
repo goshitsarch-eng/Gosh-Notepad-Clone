@@ -4,6 +4,9 @@ node_modules/
 # Rust/Tauri build output
 src-tauri/target/
 
+# Frontend build output
+frontend/dist/
+
 # Generated files
 src-tauri/gen/schemas/
 

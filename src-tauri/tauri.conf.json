@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "identifier": "com.goshitsarch.notepad",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm run dev:ui",
+    "beforeBuildCommand": "npm run build:ui",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../frontend/dist"
   },
   "app": {
     "withGlobalTauri": true,

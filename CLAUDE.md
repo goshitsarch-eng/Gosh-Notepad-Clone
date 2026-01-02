@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Windows 95/98 Notepad clone built with Tauri (Rust backend + WebView frontend). Uses the 98.css library for authentic retro styling.
+Windows 95/98 Notepad clone built with Tauri (Rust backend + Svelte/Vite WebView frontend). Uses the 98.css library for authentic retro styling.
 
 **Author:** Goshitsarch
 **Repository:** https://github.com/goshitsarch-eng/Gosh-Notepad-Clone
@@ -13,6 +13,7 @@ Windows 95/98 Notepad clone built with Tauri (Rust backend + WebView frontend). 
 
 ```bash
 npm run dev         # Run the app in development mode
+npm run dev:ui      # Run only the Svelte/Vite frontend
 npm run build       # Build for current platform
 npm run build:win   # Build for Windows x64
 npm run build:mac   # Build for macOS (Apple Silicon)
@@ -34,15 +35,15 @@ npm run build:linux # Build for Linux x64
   - `tauri.conf.json` - App configuration (window size, permissions, bundling)
   - `Cargo.toml` - Rust dependencies
 
-- **WebView Frontend** (`src/`):
-  - `index.html` - Main UI with custom Windows 98-style menu bar and modal dialogs
-  - `js/app.js` - All UI logic, state management, keyboard shortcuts
-  - `styles/main.css` - Windows 98 styling (sunken borders, status bar, menu system)
-  - `styles/98.css` - 98.css library (copy from node_modules after npm install)
+- **WebView Frontend** (`frontend/`):
+  - `index.html` - Vite entry HTML
+  - `src/App.svelte` - Main UI with custom Windows 98-style menu bar and modal dialogs
+  - `src/lib/notepad.js` - UI logic, state management, keyboard shortcuts
+  - `src/styles/main.css` - Windows 98 styling (sunken borders, status bar, menu system)
 
 ### Key Patterns
 
-- **State Management**: Single `state` object in `app.js` tracks current file path, content changes, search state, and font settings
+- **State Management**: Single `state` object in `frontend/src/lib/notepad.js` tracks current file path, content changes, search state, and font settings
 - **Menu System**: Custom in-app menu bar with dropdown behavior implemented in `setupMenuBar()`
 - **Dialogs**: Modal overlays with `.dialog-overlay.hidden` class toggling, all defined in `index.html`
 - **IPC Flow**: Frontend calls `invoke('command_name', {args})` → Tauri routes to Rust `#[tauri::command]` handlers
@@ -87,12 +88,16 @@ Tauri apps don't require the complex signing process that Electron apps do. Use 
 
 ```
 Gosh-Notepad-Clone/
-├── src/                      # Frontend
+├── frontend/                 # Svelte 5 + Vite frontend
 │   ├── index.html
-│   ├── js/app.js
-│   └── styles/
-│       ├── main.css
-│       └── 98.css           # Copy from node_modules/98.css/dist/
+│   ├── vite.config.mjs
+│   ├── svelte.config.mjs
+│   └── src/
+│       ├── App.svelte
+│       ├── main.js
+│       ├── lib/notepad.js
+│       └── styles/
+│           └── main.css
 ├── src-tauri/               # Rust backend
 │   ├── Cargo.toml
 │   ├── tauri.conf.json
@@ -127,6 +132,5 @@ Edit `src-tauri/tauri.conf.json` under `app.windows[]`
 
 ```bash
 npm install
-cp node_modules/98.css/dist/98.css src/styles/
 npm run dev
 ```

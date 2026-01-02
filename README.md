@@ -1,6 +1,6 @@
 # Notepad
 
-A faithful Windows 95/98 Notepad clone built with Tauri and [98.css](https://jdan.github.io/98.css/).
+A faithful Windows 95/98 Notepad clone built with Tauri, Svelte 5, Vite, and [98.css](https://jdan.github.io/98.css/).
 
 Experience the nostalgia of classic Windows on your modern machine.
 
@@ -48,9 +48,6 @@ cd Gosh-Notepad-Clone
 # Install dependencies
 npm install
 
-# Copy 98.css to src/styles/ (required)
-cp node_modules/98.css/dist/98.css src/styles/
-
 # Run in development mode
 npm run dev
 
@@ -64,6 +61,7 @@ npm run build
 
 ```bash
 npm run dev         # Run the app in development mode
+npm run dev:ui      # Run only the Svelte/Vite frontend
 npm run build       # Build for current platform
 npm run build:mac   # Build for macOS (Apple Silicon)
 npm run build:win   # Build for Windows x64
@@ -74,12 +72,16 @@ npm run build:linux # Build for Linux x64
 
 ```
 Gosh-Notepad-Clone/
-├── src/                      # Frontend (WebView)
-│   ├── index.html           # UI with dialogs
-│   ├── js/app.js            # Application logic
-│   └── styles/
-│       ├── main.css         # Windows 98 styling
-│       └── 98.css           # 98.css library (copied from node_modules)
+├── frontend/                 # Svelte 5 + Vite frontend
+│   ├── index.html           # Vite entry HTML
+│   ├── vite.config.mjs      # Vite + Tauri config
+│   ├── svelte.config.mjs    # Svelte config
+│   └── src/
+│       ├── App.svelte       # UI with dialogs
+│       ├── main.js          # App bootstrap
+│       ├── lib/notepad.js   # Application logic
+│       └── styles/
+│           └── main.css     # Windows 98 styling
 ├── src-tauri/               # Rust backend
 │   ├── Cargo.toml           # Rust dependencies
 │   ├── tauri.conf.json      # Tauri configuration
@@ -100,7 +102,7 @@ This is a Tauri application with two main components:
    - File system operations via native dialogs
    - Platform-specific functionality
 
-2. **WebView Frontend** (`src/`) - UI handling:
+2. **WebView Frontend** (`frontend/`) - Svelte 5 UI handling:
    - Custom Windows 98-style menu bar
    - Modal dialogs (Find, Replace, Go To, Font, About)
    - State management and keyboard shortcuts
@@ -169,6 +171,8 @@ Output:
 
 ## Technologies
 
+- [Svelte 5](https://svelte.dev/) - UI framework
+- [Vite](https://vitejs.dev/) - Frontend build tool
 - [Tauri](https://tauri.app/) - Rust-based desktop framework
 - [98.css](https://jdan.github.io/98.css/) - Windows 98 CSS library
 
