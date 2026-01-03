@@ -1,0 +1,70 @@
+name: Build Flatpak
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build Linux"]
+    types:
+      - completed
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-flatpak:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Linux AppImage (from workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: build-linux.yml
+          name: linux-appimage
+          path: flatpak-build
+
+      - name: Download Linux AppImage (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: build-linux.yml
+          name: linux-appimage
+          path: flatpak-build
+
+      - name: Extract AppImage
+        run: |
+          chmod +x flatpak-build/*.AppImage
+          cd flatpak-build
+          ./*.AppImage --appimage-extract
+          # Debug: show structure
+          echo "=== AppImage contents ==="
+          find squashfs-root -type f -executable | head -20
+          ls -la squashfs-root/
+          ls -la squashfs-root/usr/bin/ 2>/dev/null || true
+          # Find and copy the binary
+          BINARY=$(find squashfs-root -type f -executable ! -name "*.so*" ! -name "ld-*" | grep -v lib | head -1)
+          echo "Found binary: $BINARY"
+          cp "$BINARY" ../flatpak/gosh-notepad
+          cd ..
+
+      - name: Install Flatpak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y flathub org.gnome.Platform//47 org.gnome.Sdk//47
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder --force-clean --repo=repo build-dir flatpak/com.goshitsarch.notepad.yml
+          flatpak build-bundle repo notepad.flatpak com.goshitsarch.notepad
+
+      - name: Upload Flatpak
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-flatpak
+          path: notepad.flatpak
+          if-no-files-found: error
