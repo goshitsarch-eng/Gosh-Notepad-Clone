@@ -11,6 +11,20 @@ html, body {
   background-color: #c0c0c0;
 }
 
+/* Linux-friendly UI font fallbacks */
+body,
+button,
+input,
+label,
+select,
+textarea,
+.menu-bar,
+.menu-title,
+.menu-option,
+.status-bar-field {
+  font-family: "Pixelated MS Sans Serif", Arial, "DejaVu Sans", "Liberation Sans", "Noto Sans", sans-serif;
+}
+
 .notepad-container {
   display: flex;
   flex-direction: column;
@@ -25,7 +39,7 @@ html, body {
   padding: 2px 4px;
   border: none;
   resize: none;
-  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-family: 'Lucida Console', 'Courier New', 'DejaVu Sans Mono', 'Liberation Mono', 'Ubuntu Mono', 'Noto Sans Mono', monospace;
   font-size: 12px;
   line-height: 1.2;
   background-color: #ffffff;

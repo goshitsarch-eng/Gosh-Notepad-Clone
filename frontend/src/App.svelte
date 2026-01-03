@@ -179,6 +179,10 @@
             <div class="font-listbox-item" data-value="'Courier New', monospace">Courier New</div>
             <div class="font-listbox-item" data-value="Consolas, monospace">Consolas</div>
             <div class="font-listbox-item" data-value="Monaco, monospace">Monaco</div>
+            <div class="font-listbox-item" data-value="'DejaVu Sans Mono', monospace">DejaVu Sans Mono</div>
+            <div class="font-listbox-item" data-value="'Liberation Mono', monospace">Liberation Mono</div>
+            <div class="font-listbox-item" data-value="'Ubuntu Mono', monospace">Ubuntu Mono</div>
+            <div class="font-listbox-item" data-value="'Noto Sans Mono', monospace">Noto Sans Mono</div>
             <div class="font-listbox-item" data-value="monospace">System Monospace</div>
           </div>
         </div>

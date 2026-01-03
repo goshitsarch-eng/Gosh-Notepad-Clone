@@ -57,7 +57,15 @@
     },
     "linux": {
       "deb": {
-        "depends": []
+        "depends": [],
+        "desktopTemplate": null
+      },
+      "rpm": {
+        "depends": [],
+        "release": "1"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
       }
     }
   },

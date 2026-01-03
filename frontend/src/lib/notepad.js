@@ -49,7 +49,7 @@ export function initNotepadApp() {
     lastSearchDirection: 'down',
     lastSearchCaseSensitive: false,
     currentFont: {
-      family: "'Lucida Console', 'Courier New', monospace",
+      family: "'Lucida Console', 'Courier New', 'DejaVu Sans Mono', 'Liberation Mono', 'Ubuntu Mono', 'Noto Sans Mono', monospace",
       style: 'normal',
       size: 12
     }
