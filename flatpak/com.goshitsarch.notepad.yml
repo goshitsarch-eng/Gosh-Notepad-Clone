@@ -22,25 +22,22 @@ modules:
   - name: notepad
     buildsystem: simple
     build-commands:
-      - install -Dm755 notepad -t /app/bin/
-      - install -Dm644 notepad.desktop -t /app/share/applications/
-      - install -Dm644 icon-256x256.png /app/share/icons/hicolor/256x256/apps/com.goshitsarch.notepad.png
-      - install -Dm644 icon-128x128.png /app/share/icons/hicolor/128x128/apps/com.goshitsarch.notepad.png
-      - install -Dm644 icon-64x64.png /app/share/icons/hicolor/64x64/apps/com.goshitsarch.notepad.png
-      - install -Dm644 com.goshitsarch.notepad.metainfo.xml -t /app/share/metainfo/
+      - install -Dm755 gosh-notepad /app/bin/notepad
+      - install -Dm644 notepad.desktop /app/share/applications/com.goshitsarch.notepad.desktop
+      - install -Dm644 128x128@2x.png /app/share/icons/hicolor/256x256/apps/com.goshitsarch.notepad.png
+      - install -Dm644 128x128.png /app/share/icons/hicolor/128x128/apps/com.goshitsarch.notepad.png
+      - install -Dm644 32x32.png /app/share/icons/hicolor/32x32/apps/com.goshitsarch.notepad.png
+      - install -Dm644 com.goshitsarch.notepad.metainfo.xml /app/share/metainfo/com.goshitsarch.notepad.metainfo.xml
     sources:
       - type: file
-        path: ../src-tauri/target/release/notepad
+        path: gosh-notepad
       - type: file
         path: notepad.desktop
       - type: file
         path: ../src-tauri/icons/128x128.png
-        dest-filename: icon-128x128.png
       - type: file
         path: ../src-tauri/icons/128x128@2x.png
-        dest-filename: icon-256x256.png
       - type: file
         path: ../src-tauri/icons/32x32.png
-        dest-filename: icon-64x64.png
       - type: file
         path: com.goshitsarch.notepad.metainfo.xml
