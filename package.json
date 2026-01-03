@@ -1,0 +1,30 @@
+{
+  "name": "gosh-notepad",
+  "version": "1.0.0",
+  "description": "Windows 95/98 Notepad Clone",
+  "author": "Goshitsarch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/goshitsarch-eng/Gosh-Notepad-Clone"
+  },
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:ui": "vite --config frontend/vite.config.mjs frontend",
+    "build": "tauri build",
+    "build:ui": "vite build --config frontend/vite.config.mjs frontend",
+    "build:win": "tauri build --target x86_64-pc-windows-msvc",
+    "build:mac": "tauri build --target aarch64-apple-darwin",
+    "build:linux": "tauri build --target x86_64-unknown-linux-gnu"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@tauri-apps/cli": "^2",
+    "svelte": "^5.0.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "98.css": "^0.1.20"
+  }
+}
