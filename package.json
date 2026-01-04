@@ -15,7 +15,8 @@
     "build:ui": "vite build --config frontend/vite.config.mjs frontend",
     "build:win": "tauri build --target x86_64-pc-windows-msvc",
     "build:mac": "tauri build --target aarch64-apple-darwin",
-    "build:linux": "tauri build --target x86_64-unknown-linux-gnu"
+    "build:linux": "tauri build --target x86_64-unknown-linux-gnu",
+    "build:linux-arm64": "tauri build --target aarch64-unknown-linux-gnu"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
