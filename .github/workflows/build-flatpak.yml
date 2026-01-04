@@ -9,7 +9,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -17,7 +17,10 @@ env:
 jobs:
   build-flatpak:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,9 +69,25 @@ jobs:
           flatpak-builder --force-clean --repo=repo build-dir flatpak/com.goshitsarch.notepad.yml
           flatpak build-bundle repo notepad.flatpak com.goshitsarch.notepad
 
+      - name: Rename Flatpak with version
+        run: |
+          TAG="${{ github.event.workflow_run.head_branch }}"
+          if [ -z "$TAG" ]; then
+            TAG="${GITHUB_REF_NAME:-latest}"
+          fi
+          mv notepad.flatpak "notepad-${TAG}-x86_64.flatpak"
+          echo "FLATPAK_FILE=notepad-${TAG}-x86_64.flatpak" >> $GITHUB_ENV
+
       - name: Upload Flatpak
         uses: actions/upload-artifact@v4
         with:
           name: linux-flatpak
-          path: notepad.flatpak
+          path: notepad-*-x86_64.flatpak
           if-no-files-found: error
+
+      - name: Upload to GitHub Release
+        if: github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.workflow_run.head_branch }}
+          files: notepad-*-x86_64.flatpak
