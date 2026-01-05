@@ -1,9 +1,9 @@
 [package]
 name = "gosh-notepad"
-version = "1.0.0"
+version = "2.0.0"
 description = "Windows 95/98 Notepad Clone"
 authors = ["Goshitsarch"]
-license = "MIT"
+license = "AGPL-3.0"
 repository = "https://github.com/goshitsarch-eng/Gosh-Notepad-Clone"
 edition = "2021"
 

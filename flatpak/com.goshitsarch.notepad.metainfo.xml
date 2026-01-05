@@ -4,7 +4,7 @@
   <name>Notepad</name>
   <summary>Windows 95/98 Notepad Clone</summary>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
+  <project_license>AGPL-3.0</project_license>
   <description>
     <p>
       A faithful Windows 95/98 Notepad clone built with Tauri and styled with 98.css

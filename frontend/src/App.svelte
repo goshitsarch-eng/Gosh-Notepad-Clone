@@ -242,7 +242,7 @@
         </svg>
       </div>
       <h3>Notepad</h3>
-      <p>Version 1.0</p>
+      <p>Version 2.0.0</p>
       <hr />
       <p class="about-description">
         A Windows 95/98 Notepad clone<br />
