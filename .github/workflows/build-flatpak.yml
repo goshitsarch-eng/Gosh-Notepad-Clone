@@ -70,13 +70,18 @@ jobs:
           flatpak build-bundle repo notepad.flatpak com.goshitsarch.notepad
 
       - name: Rename Flatpak with version
+        env:
+          WORKFLOW_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          TAG="${{ github.event.workflow_run.head_branch }}"
+          TAG="$WORKFLOW_BRANCH"
           if [ -z "$TAG" ]; then
             TAG="${GITHUB_REF_NAME:-latest}"
           fi
+          # Sanitize tag to prevent path traversal
+          TAG=$(echo "$TAG" | tr -cd '[:alnum:]._-')
           mv notepad.flatpak "notepad-${TAG}-x86_64.flatpak"
           echo "FLATPAK_FILE=notepad-${TAG}-x86_64.flatpak" >> $GITHUB_ENV
+          echo "RELEASE_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Upload Flatpak
         uses: actions/upload-artifact@v4
@@ -89,5 +94,5 @@ jobs:
         if: github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'v')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.workflow_run.head_branch }}
+          tag_name: ${{ env.RELEASE_TAG }}
           files: notepad-*-x86_64.flatpak
